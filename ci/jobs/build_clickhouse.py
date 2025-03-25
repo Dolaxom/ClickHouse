@@ -36,7 +36,7 @@ BUILD_TYPE_TO_CMAKE = {
     BuildTypes.AMD_MUSL: f"     cmake --debug-trycompile -DCMAKE_VERBOSE_MAKEFILE=1 -LA -DCMAKE_BUILD_TYPE=None  -DSANITIZE=          -DENABLE_CHECK_HEAVY_BUILDS=1 -DENABLE_CLICKHOUSE_SELF_EXTRACTING=1 -DCMAKE_C_COMPILER={ToolSet.COMPILER_C} -DCMAKE_CXX_COMPILER={ToolSet.COMPILER_CPP} -DCOMPILER_CACHE=sccache -DENABLE_BUILD_PROFILING=1 -DENABLE_TESTS=0 -DENABLE_UTILS=0 -DCMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY=ON -DCMAKE_TOOLCHAIN_FILE={current_directory}/cmake/linux/toolchain-x86_64-musl.cmake",
     BuildTypes.RISCV64: f"      cmake --debug-trycompile -DCMAKE_VERBOSE_MAKEFILE=1 -LA -DCMAKE_BUILD_TYPE=None  -DSANITIZE=          -DENABLE_CHECK_HEAVY_BUILDS=1 -DENABLE_CLICKHOUSE_SELF_EXTRACTING=1 -DCMAKE_C_COMPILER={ToolSet.COMPILER_C} -DCMAKE_CXX_COMPILER={ToolSet.COMPILER_CPP} -DCOMPILER_CACHE=sccache -DENABLE_BUILD_PROFILING=1 -DENABLE_TESTS=0 -DENABLE_UTILS=0 -DCMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY=ON -DCMAKE_TOOLCHAIN_FILE={current_directory}/cmake/linux/toolchain-riscv64.cmake",
     BuildTypes.S390X: f"        cmake --debug-trycompile -DCMAKE_VERBOSE_MAKEFILE=1 -LA -DCMAKE_BUILD_TYPE=None  -DSANITIZE=          -DENABLE_CHECK_HEAVY_BUILDS=1 -DENABLE_CLICKHOUSE_SELF_EXTRACTING=1 -DCMAKE_C_COMPILER={ToolSet.COMPILER_C} -DCMAKE_CXX_COMPILER={ToolSet.COMPILER_CPP} -DCOMPILER_CACHE=sccache -DENABLE_BUILD_PROFILING=1 -DENABLE_TESTS=0 -DENABLE_UTILS=0 -DCMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY=ON -DCMAKE_TOOLCHAIN_FILE={current_directory}/cmake/linux/toolchain-s390x.cmake",
-    BuildTypes.LOONGARCH64: f"  cmake --debug-trycompile -DCMAKE_VERBOSE_MAKEFILE=1 -LA -DCMAKE_BUILD_TYPE=None  -DSANITIZE=          -DENABLE_CHECK_HEAVY_BUILDS=1 -DENABLE_CLICKHOUSE_SELF_EXTRACTING=1 -DCMAKE_C_COMPILER={ToolSet.COMPILER_C} -DCMAKE_CXX_COMPILER={ToolSet.COMPILER_CPP} -DCOMPILER_CACHE=sccache -DENABLE_BUILD_PROFILING=1 -DENABLE_TESTS=0 -DENABLE_UTILS=0 -DCMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY=ON -DCMAKE_TOOLCHAIN_FILE={current_directory}/cmake/linux/toolchain-loongarch64.cmake",
+    BuildTypes.LOONGARCH64: f"  cmake --debug-trycompile -DCMAKE_VERBOSE_MAKEFILE=1 -LA -DCMAKE_BUILD_TYPE=None  -DSANITIZE=          -DENABLE_CHECK_HEAVY_BUILDS=1 -DENABLE_CLICKHOUSE_SELF_EXTRACTING=1 -DCMAKE_C_COMPILER={ToolSet.COMPILER_C} -DCMAKE_CXX_COMPILER={ToolSet.COMPILER_CPP} -DCOMPILER_CACHE=sccache -DENABLE_BUILD_PROFILING=1 -DCMAKE_TOOLCHAIN_FILE={current_directory}/cmake/linux/toolchain-loongarch64.cmake -DENABLE_BUZZHOUSE=1",
     BuildTypes.FUZZERS: f"      cmake --debug-trycompile -DCMAKE_VERBOSE_MAKEFILE=1 -LA -DCMAKE_BUILD_TYPE=None  -DSANITIZE=address   -DENABLE_CHECK_HEAVY_BUILDS=1 -DENABLE_CLICKHOUSE_SELF_EXTRACTING=1 -DCMAKE_C_COMPILER={ToolSet.COMPILER_C} -DCMAKE_CXX_COMPILER={ToolSet.COMPILER_CPP} -DCOMPILER_CACHE=sccache -DENABLE_BUILD_PROFILING=0 -DENABLE_TESTS=0 -DENABLE_UTILS=0 -DCMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY=ON -DENABLE_FUZZING=1 -DENABLE_PROTOBUF=1 -DWITH_COVERAGE=1 -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON -DENABLE_BUZZHOUSE=1",
 }
 
@@ -119,7 +119,11 @@ def main():
         build_type in BUILD_TYPE_TO_CMAKE
     ), f"--build_type option is invalid [{build_type}]"
 
-    cmake_cmd = BUILD_TYPE_TO_CMAKE[build_type] + " " + current_directory
+    cmake_cmd = BUILD_TYPE_TO_CMAKE[build_type]
+    info = Info()
+    if info.pr_number == 0:
+        cmake_cmd += " -DCLICKHOUSE_OFFICIAL_BUILD=1"
+    cmake_cmd += f" {current_directory}"
 
     res = True
     results = []
@@ -225,18 +229,22 @@ def main():
         res = results[-1].is_ok()
 
     if res and build_type in BUILD_TYPE_TO_STATIC_LOCATION:
-        info = Info()
         if (
             not info.is_local_run
             and info.repo_name == "ClickHouse/ClickHouse"
-            and info.git_branch == "master"
+            # TODO: uncomment
+            # and info.git_branch == "master"
         ):
             print("Uploading binary to static location for installation with curl")
 
             def do():
-                S3().copy_file_to_s3(
-                    local_path="",
-                    s3_path=f"{S3_BUCKET_NAME}/master/{BUILD_TYPE_TO_STATIC_LOCATION[build_type]}/clickhouse-full",
+                S3.copy_file_to_s3(
+                    local_path=f"{temp_dir}/build/programs/clickhouse",
+                    s3_path=f"{S3_BUCKET_NAME}/{info.git_branch}/{BUILD_TYPE_TO_STATIC_LOCATION[build_type]}/clickhouse-full",
+                )
+                S3.copy_file_to_s3(
+                    local_path=f"{temp_dir}/build/programs/clickhouse-stripped",
+                    s3_path=f"{S3_BUCKET_NAME}/{info.git_branch}/{BUILD_TYPE_TO_STATIC_LOCATION[build_type]}/clickhouse",
                 )
 
             results.append(

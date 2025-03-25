@@ -11,7 +11,7 @@ from ci.workflows.pull_request import (
 workflow = Workflow.Config(
     name="MasterCI",
     event=Workflow.Event.PUSH,
-    branches=[BASE_BRANCH],
+    branches=[BASE_BRANCH, "ci_build_and_perf_refactored"],
     jobs=[
         *JobConfigs.tidy_build_jobs,
         *JobConfigs.build_jobs,
@@ -40,7 +40,7 @@ workflow = Workflow.Config(
         *JobConfigs.clickbench_master_jobs,
         *JobConfigs.ast_fuzzer_jobs,
         *JobConfigs.buzz_fuzzer_jobs,
-        *JobConfigs.performance_comparison__with_prev_release_jobs,
+        *JobConfigs.performance_comparison_with_master_head_jobs,
         *JobConfigs.sqlancer_master_jobs,
         JobConfigs.sqltest_master_job,
     ],

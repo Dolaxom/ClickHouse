@@ -58,12 +58,19 @@ def should_skip_job(job_name):
             "Skipped, labeled with 'ci-performance' - run performance jobs only",
         )
 
-    # skip ARM perf tests for non-performance update
-    if (
-        Labels.PR_PERFORMANCE not in _info_cache.pr_labels
-        and JobNames.PERFORMANCE in job_name
-        and ("aarch64" in job_name or "arm" in job_name)
-    ):
-        return True, "Skipped, not labeled with 'pr-performance'"
+    # # skip ARM perf tests for non-performance update
+    # if (
+    #     Labels.PR_PERFORMANCE not in _info_cache.pr_labels
+    #     and JobNames.PERFORMANCE in job_name
+    #     and ("aarch64" in job_name or "arm" in job_name)
+    # ):
+    #     return True, "Skipped, not labeled with 'pr-performance'"
+
+    # TODO: test
+    if "build" not in job_name.lower() and "perf" not in job_name.lower():
+        return True, "Hack"
+
+    if "release" not in job_name.lower() and "loong" not in job_name.lower():
+        return True, "Hack"
 
     return False, ""

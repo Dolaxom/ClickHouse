@@ -745,7 +745,7 @@ class JobConfigs:
             ["Build (amd_ubsan)"],
         ],
     )
-    performance_comparison__with_prev_release_jobs = Job.Config(
+    performance_comparison_with_prev_release_jobs = Job.Config(
         name=JobNames.PERFORMANCE,
         runs_on=["#from param"],
         command="python3 ./ci/jobs/performance_tests.py --test-options {PARAMETER}",

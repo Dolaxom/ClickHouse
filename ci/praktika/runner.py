@@ -35,7 +35,7 @@ class Runner:
             WORKFLOW_NAME=workflow.name,
             JOB_NAME=job.name,
             REPOSITORY="",
-            BRANCH=branch or Settings.MAIN_BRANCH if not pr else "",
+            BRANCH="branch_name",
             SHA=sha or Shell.get_output("git rev-parse HEAD"),
             PR_NUMBER=pr or -1,
             EVENT_TYPE="",
