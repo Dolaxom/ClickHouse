@@ -203,11 +203,13 @@ public:
 
         if (const auto * col_non_const = typeid_cast<const ColumnString *>(&src_column))
         {
+            ColumnArray::Offset offset = 0;
             for (size_t i = 0; i < input_rows_count; ++i)
             {
                 std::vector<UInt32> row_result = getHashes(col_non_const->getDataAt(i).toView());
+                offset += row_result.size();
+                res_offsets_data.push_back(offset);
                 res_nested_data.insert(row_result.begin(), row_result.end());
-                res_offsets_data.push_back(row_result.size());
             }
         }
         else
