@@ -12,8 +12,9 @@ def check():
     if info.user_name not in ("maxknv", "yariks5s", "kssenii"):
         print(f"Not enabled for [{info.user_name}]")
         return
+    # TODO: TEST
     if not Shell.check(
-        f"gh workflow run private_quick_sync.yml --repo ClickHouse/clickhouse-private --ref master --field pr_number={info.pr_number} --field branch_name={info.git_branch} --field title='{info.pr_title}' --field sha={info.sha}",
+        f"gh workflow run private_quick_sync.yml --repo ClickHouse/clickhouse-private --ref ci_automatic_sync_fix --field pr_number={info.pr_number} --field branch_name={info.git_branch} --field title='{info.pr_title}' --field sha={info.sha}",
     ):
         GH.post_commit_status(
             name=SYNC, status="error", description="failed to start the sync", url=""

@@ -77,7 +77,7 @@ class Info:
 
     @property
     def user_name(self):
-        return self.env.USER_LOGIN
+        return self.env.USER_LOGIN or self.env.ACTOR
 
     @property
     def run_url(self):

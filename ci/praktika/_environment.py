@@ -32,6 +32,7 @@ class _Environment(MetaClasses.Serializable):
     PR_BODY: str
     PR_TITLE: str
     USER_LOGIN: str
+    ACTOR: str
     FORK_NAME: str
     # merged PR for "push" or "merge_group" workflow
     LINKED_PR_NUMBER: int = 0
@@ -54,6 +55,7 @@ class _Environment(MetaClasses.Serializable):
         RUN_URL = f"https://github.com/{REPOSITORY}/actions/runs/{RUN_ID}"
         BASE_BRANCH = os.getenv("GITHUB_BASE_REF", "")
         USER_LOGIN = ""
+        ACTOR = os.getenv("GITHUB_ACTOR", "")
         FORK_NAME = ""
         PR_BODY = ""
         PR_TITLE = ""
@@ -185,6 +187,7 @@ class _Environment(MetaClasses.Serializable):
             PR_BODY=PR_BODY,
             PR_TITLE=PR_TITLE,
             USER_LOGIN=USER_LOGIN,
+            ACTOR=ACTOR,
             FORK_NAME=FORK_NAME,
             PR_LABELS=PR_LABELS,
             INSTANCE_LIFE_CYCLE=INSTANCE_LIFE_CYCLE,
