@@ -55,6 +55,9 @@ private:
                     throw Exception(ErrorCodes::BAD_ARGUMENTS, "Incorrect utf8 symbol");
                 byte_offset += len;
             }
+            if (pos + byte_offset != end)
+                throw Exception(ErrorCodes::BAD_ARGUMENTS, "Incorrect utf8 symbol");
+
             utf8_offsets.push_back(byte_offset);
 
             for (size_t i = 0; i + min_ngram_length - 1 < utf8_offsets.size(); ++i)
@@ -166,6 +169,12 @@ public:
         }
         return true;
     }
+
+    // Minimal substring are guaranteed to return.
+    UInt64 estimateResultLength() const
+    {
+        return ngram_hashes.size() - 1;
+    }
 };
 
 template <bool is_utf8>
@@ -183,12 +192,13 @@ public:
 
     DataTypePtr getReturnTypeImpl(const ColumnsWithTypeAndName & args) const override
     {
-        impl.checkArguments(*this, args);
+        SparseGramsImpl<is_utf8>::checkArguments(*this, args);
         return std::make_shared<DataTypeArray>(std::make_shared<DataTypeUInt32>());
     }
 
     ColumnPtr executeImpl(const ColumnsWithTypeAndName & arguments, const DataTypePtr &, size_t input_rows_count) const override
     {
+        SparseGramsImpl<is_utf8> impl;
         impl.init(arguments, false);
 
         auto col_res_nested = ColumnUInt32::create();
@@ -206,7 +216,7 @@ public:
             ColumnArray::Offset offset = 0;
             for (size_t i = 0; i < input_rows_count; ++i)
             {
-                std::vector<UInt32> row_result = getHashes(col_non_const->getDataAt(i).toView());
+                std::vector<UInt32> row_result = getHashes(impl, col_non_const->getDataAt(i).toView());
                 offset += row_result.size();
                 res_offsets_data.push_back(offset);
                 res_nested_data.insert(row_result.begin(), row_result.end());
@@ -219,12 +229,12 @@ public:
     }
 
 private:
-    std::vector<UInt32> getHashes(std::string_view input_str) const
+    std::vector<UInt32> getHashes(SparseGramsImpl<is_utf8> & impl, std::string_view input_str) const
     {
         impl.set(input_str.data(), input_str.data() + input_str.size());
 
         std::vector<UInt32> result;
-        result.reserve(input_str.size()); // Reserve at least for every (n-1)gram
+        result.reserve(impl.estimateResultLength()); // Reserve at least for every minimal ngram
 
         Pos start{};
         Pos end{};
@@ -233,8 +243,6 @@ private:
 
         return result;
     }
-
-    mutable SparseGramsImpl<is_utf8> impl;
 };
 
 using FunctionSparseGrams = FunctionTokens<SparseGramsImpl<false>>;
